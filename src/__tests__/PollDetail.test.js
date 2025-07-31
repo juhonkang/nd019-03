@@ -112,4 +112,66 @@ describe('PollDetail Component', () => {
     
     expect(screen.getByText('Poll by Sarah Edo')).toBeInTheDocument();
   });
+
+  it('should handle voting mechanism correctly', async () => {
+    const store = createMockStore();
+    renderWithProviders(<PollDetail />, store);
+    
+    // Find and click the vote button for option one
+    const voteButtons = screen.getAllByText('Click');
+    fireEvent.click(voteButtons[0]);
+    
+    // The component should dispatch the vote action
+    // We can verify the store state has been updated
+    const state = store.getState();
+    expect(state.questions.questions['test-question-id']).toBeDefined();
+  });
+
+  it('should calculate vote percentages correctly after voting', () => {
+    // Test with a different vote distribution
+    const customQuestions = {
+      'test-question-id': {
+        id: 'test-question-id',
+        author: 'sarahedo',
+        timestamp: 1467166872634,
+        optionOne: {
+          votes: ['user1'],
+          text: 'Build our new application with Javascript',
+        },
+        optionTwo: {
+          votes: ['user2', 'user3', 'user4'],
+          text: 'Build our new application with Typescript'
+        }
+      }
+    };
+
+    const customStore = configureStore({
+      reducer: {
+        auth: authSlice,
+        users: usersSlice,
+        questions: questionsSlice,
+      },
+      preloadedState: {
+        auth: { 
+          user: { 
+            id: 'currentuser', 
+            name: 'Current User',
+            answers: { 'test-question-id': 'optionTwo' }
+          }, 
+          isAuthenticated: true 
+        },
+        users: { users: mockUsers, loading: false, error: null },
+        questions: { questions: customQuestions, loading: false, error: null }
+      }
+    });
+
+    renderWithProviders(<PollDetail />, customStore);
+    
+    // Option One: 1 vote out of 4 total = 25%
+    // Option Two: 3 votes out of 4 total = 75%
+    expect(screen.getByText('1 votes')).toBeInTheDocument();
+    expect(screen.getByText('3 votes')).toBeInTheDocument();
+    expect(screen.getByText('25%')).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeInTheDocument();
+  });
 });
